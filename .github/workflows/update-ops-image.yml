@@ -1,4 +1,4 @@
-name: Update ArgoCD Image in Ops Repo
+name: 🚀 Update ArgoCD Image Tag in -ops Repo
 
 on:
   push:
@@ -7,26 +7,34 @@ on:
     types: [published]
 
 jobs:
-  update-ops:
+  update-ops-repo:
     runs-on: ubuntu-latest
     env:
-      OPS_REPO: erickdiaz/argo-demo-app-ops
+      REPO_OPS: erickdiaz/argo-demo-app-ops
       FILE_PATH: overlays/dev/deployment_overlay.yml
-      IMAGE: ghcr.io/erickdiaz/argo-demo-app
+      IMAGE_NAME: ghcr.io/erickdiaz/argo-demo-app
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout current repository
+        uses: actions/checkout@v4
 
-      - name: Get short SHA
+      - name: Extract short SHA
+        id: vars
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Push new image tag to ops repo
+      - name: Clone -ops repo
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          git clone https://x-access-token:${{ secrets.OPS_REPO_TOKEN }}@github.com/${{ env.OPS_REPO }} ops-repo
+          git clone https://x-access-token:${{ secrets.OPS_REPO_TOKEN }}@github.com/${{ env.REPO_OPS }} ops-repo
+        env:
+          OPS_REPO_TOKEN: ${{ secrets.OPS_REPO_TOKEN }}
+
+      - name: Update image tag in deployment_overlay.yml
+        run: |
           cd ops-repo
-          sed -i "s|image: .*|image: ${{ env.IMAGE }}:${{ env.SHORT_SHA }}|g" ${{ env.FILE_PATH }}
+          sed -i "s|image: .*|image: ${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}|g" ${{ env.FILE_PATH }}
           git add ${{ env.FILE_PATH }}
-          git commit -m "update image to ${{ env.SHORT_SHA }}"
+          git commit -m "chore: update image tag to ${{ env.SHORT_SHA }}"
           git push
+
